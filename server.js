@@ -22,27 +22,21 @@ app.post("/api/chat", async (req, res) => {
   try {
     const TOKEN_LIMIT = 10000;
 
-    const isClassicModel =
-      model.startsWith("gpt-") ||
-      model.startsWith("text-") ||
-      model.includes("turbo");
-
-    // Build correct request format
     const bodyPayload = {
       model,
-      messages
+      messages,
+      temperature: 0.7
     };
 
-    if (isClassicModel) {
-      // Old models (gpt-3.5, gpt-4)
-      bodyPayload.temperature = 0.7;
+    // Use correct token param based on model type
+    if (
+      model.startsWith("gpt-") ||
+      model.startsWith("text-") ||
+      model.includes("turbo")
+    ) {
       bodyPayload.max_tokens = TOKEN_LIMIT;
     } else {
-      // New models (gpt-4o, o3-mini, etc.)
-      bodyPayload.generation_config = {
-        temperature: 0.7,
-        max_completion_tokens: TOKEN_LIMIT
-      };
+      bodyPayload.max_completion_tokens = TOKEN_LIMIT;
     }
 
     const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
