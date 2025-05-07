@@ -18,7 +18,7 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/api/chat", async (req, res) => {
-  const { messages, model = "gpt-3.5-turbo" } = req.body;
+  const { messages, model = "gpt-4.1" } = req.body;
 
   try {
     const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
