@@ -10,9 +10,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🔧 Serve static frontend from /public
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use(cors());
 app.use(express.json());
@@ -21,23 +20,29 @@ app.post("/api/chat", async (req, res) => {
   const { messages, model = "gpt-4o" } = req.body;
 
   try {
-    // 🎯 Determine the correct token parameter
     const TOKEN_LIMIT = 10000;
 
-    const bodyPayload = {
-      model,
-      messages,
-      temperature: 0.7
-    };
-
-    if (
+    const isClassicModel =
       model.startsWith("gpt-") ||
       model.startsWith("text-") ||
-      model.includes("turbo")
-    ) {
+      model.includes("turbo");
+
+    // Build correct request format
+    const bodyPayload = {
+      model,
+      messages
+    };
+
+    if (isClassicModel) {
+      // Old models (gpt-3.5, gpt-4)
+      bodyPayload.temperature = 0.7;
       bodyPayload.max_tokens = TOKEN_LIMIT;
     } else {
-      bodyPayload.max_completion_tokens = TOKEN_LIMIT;
+      // New models (gpt-4o, o3-mini, etc.)
+      bodyPayload.generation_config = {
+        temperature: 0.7,
+        max_completion_tokens: TOKEN_LIMIT
+      };
     }
 
     const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -56,7 +61,6 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// 🛠 Fallback route for SPA support
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
