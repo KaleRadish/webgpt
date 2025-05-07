@@ -22,20 +22,24 @@ app.post("/api/chat", async (req, res) => {
   try {
     const TOKEN_LIMIT = 10000;
 
+    // Decide if we're on a “classic” model (supports temperature / max_tokens)
+    const isClassic =
+      model.startsWith("gpt-") && !model.includes("4o") && !model.includes("o-") ||
+      model.startsWith("text-") ||
+      model.includes("turbo");
+
     const bodyPayload = {
       model,
-      messages,
-      temperature: 0.7
+      messages
     };
 
-    // Use correct token param based on model type
-    if (
-      model.startsWith("gpt-") ||
-      model.startsWith("text-") ||
-      model.includes("turbo")
-    ) {
-      bodyPayload.max_tokens = TOKEN_LIMIT;
+    if (isClassic) {
+      // Classic GPT‑3.5 / GPT‑4
+      bodyPayload.temperature = 0.7;
+      bodyPayload.max_tokens  = TOKEN_LIMIT;
     } else {
+      // gpt‑4o and future o‑series models
+      // (No temperature allowed; must use max_completion_tokens)
       bodyPayload.max_completion_tokens = TOKEN_LIMIT;
     }
 
@@ -55,6 +59,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+// SPA fallback
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
