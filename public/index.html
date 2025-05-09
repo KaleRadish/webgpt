@@ -14,19 +14,22 @@
       background: #000;
       color: #fff;
       font-family: -apple-system, sans-serif;
-      font-size: 1.1rem;
+      font-size: 0.9rem;
       width: 100vw;
       min-height: 100vh;
       overflow-y: auto;
       -webkit-font-smoothing: antialiased;
     }
-    body > * { max-width: 100vw; box-sizing: border-box; }
+    body > * {
+      max-width: 100vw;
+      box-sizing: border-box;
+    }
     button {
       background: #222;
       color: #9cf;
-      font-size: 1rem;
+      font-size: 0.8rem;
       border: none;
-      padding: 0.5rem 0.8rem;
+      padding: 0.3rem 0.5rem;
       border-radius: 6px;
     }
     #chat {
@@ -38,9 +41,13 @@
       margin-top: 3.5rem;
       margin-bottom: 3.5rem;
     }
-    .msg { margin-bottom: 1rem; overflow-wrap: break-word; }
-    .user { font-weight: bold; color: #7dcfff; }
-    .ai { font-style: italic; color: #ccc; }
+    .msg {
+      margin-bottom: 0.8rem;
+      overflow-wrap: break-word;
+    }
+    .user { font-weight: bold; color: #7dcfff; font-size: 0.85rem; }
+    .ai   { font-style: italic; color: #ccc; font-size: 0.85rem; }
+
     #menu {
       position: fixed;
       top: 0;
@@ -51,18 +58,25 @@
       padding: 1rem;
       display: none;
       flex-direction: column;
-      overflow-y: scroll;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       z-index: 100;
     }
+
     #menu.visible { display: flex !important; }
-    #menu h3 { margin-top: 0; color: #ccc; font-size: 1rem; }
+    #menu h3 {
+      margin-top: 0;
+      color: #ccc;
+      font-size: 0.9rem;
+    }
     .chat-item {
       background: #111;
-      padding: 0.5rem;
+      padding: 0.4rem;
       margin: 0.3rem 0;
       border-radius: 4px;
       color: #9cf;
       cursor: pointer;
+      font-size: 0.85rem;
     }
     #top-controls {
       position: fixed;
@@ -71,15 +85,15 @@
       width: 100vw;
       display: flex;
       justify-content: center;
-      gap: 0.4rem;
+      gap: 0.3rem;
       background: #000;
-      padding: 0.3rem;
+      padding: 0.2rem;
       border-bottom: 1px solid #333;
       z-index: 11;
     }
     #top-controls button {
       flex: 1;
-      padding: 0.5rem;
+      padding: 0.4rem;
       border-radius: 6px;
     }
     #chat-controls {
@@ -91,13 +105,13 @@
       justify-content: space-between;
       align-items: center;
       background: #000;
-      padding: 0.3rem;
+      padding: 0.2rem;
       border-top: 1px solid #333;
       z-index: 11;
     }
     #user-input {
       width: 66%;
-      font-size: 1rem;
+      font-size: 0.85rem;
       margin-right: 0.3rem;
       padding: 0.4rem;
       background: #111;
@@ -186,9 +200,10 @@
 
       function showMenu() {
         const sessions = JSON.parse(localStorage.getItem('chatSessions') || '{}');
+        const keys = Object.keys(sessions).sort((a, b) => b - a); // newest first
         menu.innerHTML = '<h3>Previous Chats</h3>';
-        Object.entries(sessions).forEach(([id, entries]) => {
-          const title = entries[0]?.user?.slice(0, 40) || 'Untitled';
+        keys.forEach(id => {
+          const title = sessions[id]?.[0]?.user?.slice(0, 40) || 'Untitled';
           const div = document.createElement('div');
           div.className = 'chat-item';
           div.textContent = title;
@@ -228,11 +243,11 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              model: 'o3-mini',
+              model: 'gpt-4o',
               messages: [
                 {
                   role: 'system',
-                  content: 'If the user asks a math-related question (especially involving equations, derivatives, integrals, etc.), return the answer in clear, step-by-step form using numbered or bulleted steps. Always format any math in proper LaTeX using double dollar signs ($$). For all non-math questions (e.g., history, English, multiple choice, general conversation), respond normally without step-by-step formatting.'
+                  content: 'If the user asks a math-related question, return the answer in clear, step-by-step form using LaTeX. For other topics, respond normally.'
                 },
                 ...chatHistory
               ]
@@ -240,13 +255,7 @@
           });
 
           const data = await response.json();
-console.log('API response:', data); // ✅ logs full response in browser
-
-let reply = data.choices?.[0]?.message?.content;
-
-if (!reply) {
-  reply = JSON.stringify(data); // fallback: show full error JSON in chat
-}
+          let reply = data.choices?.[0]?.message?.content || data.error || 'Error';
           reply = autoWrapMath(reply);
 
           chatBox.innerHTML += `<div class="msg ai">${reply}</div>`;
@@ -258,7 +267,6 @@ if (!reply) {
         }
       };
 
-      // Auto-load most recent chat
       const sessions = JSON.parse(localStorage.getItem('chatSessions') || '{}');
       const ids = Object.keys(sessions);
       if (ids.length) loadChat(ids[ids.length - 1]);
